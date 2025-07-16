@@ -1,0 +1,30 @@
+service: signature-processing
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-northeast-1
+  environment:
+    DATABASE_URL: ${env:DATABASE_URL}
+    S3_BUCKET: ${env:S3_BUCKET}
+    AWS_ENDPOINT: ${env:AWS_ENDPOINT}
+
+functions:
+  processFile:
+    handler: dist/handlers/processFile.handler
+    timeout: 300
+    memorySize: 1024
+    events:
+      - http:
+          path: /process
+          method: post
+          cors: true
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+    lambdaPort: 3002
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline

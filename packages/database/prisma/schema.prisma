@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String   @id @default(cuid())
+  email    String   @unique
+  name     String?
+  role     UserRole @default(APPLICANT)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uploadedRequests ProcessingRequest[] @relation("UploaderRequests")
+  approvals        Approval[]
+
+  @@map("users")
+}
+
+model ProcessingRequest {
+  id               String           @id @default(cuid())
+  uploaderId       String
+  originalFileName String
+  fileSize         Int
+  mimeType         String
+  s3Key            String
+  status           ProcessingStatus @default(UPLOADED)
+  
+  sanitizedS3Key  String?
+  signedS3Key     String?
+  processedAt     DateTime?
+  
+  requiresApproval Boolean @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  uploader        User       @relation("UploaderRequests", fields: [uploaderId], references: [id])
+  approvals       Approval[]
+  processingLogs  ProcessingLog[]
+
+  @@map("processing_requests")
+}
+
+model Approval {
+  id          String        @id @default(cuid())
+  requestId   String
+  approverId  String
+  status      ApprovalStatus
+  comments    String?
+  approvedAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  request     ProcessingRequest @relation(fields: [requestId], references: [id])
+  approver    User              @relation(fields: [approverId], references: [id])
+
+  @@map("approvals")
+}
+
+model ProcessingLog {
+  id          String   @id @default(cuid())
+  requestId   String
+  step        ProcessingStep
+  status      String
+  message     String?
+  metadata    Json?
+  executedAt  DateTime @default(now())
+
+  request     ProcessingRequest @relation(fields: [requestId], references: [id])
+
+  @@map("processing_logs")
+}
+
+enum UserRole {
+  APPLICANT
+  APPROVER
+  ADMIN
+}
+
+enum ProcessingStatus {
+  UPLOADED
+  SANITIZING
+  SANITIZED
+  SIGNING
+  SIGNED
+  AWAITING_APPROVAL
+  APPROVED
+  REJECTED
+  COMPLETED
+  FAILED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProcessingStep {
+  UPLOAD
+  VIRUS_SCAN
+  SANITIZATION
+  SIGNATURE
+  APPROVAL_REQUEST
+  FINAL_PROCESSING
+}
