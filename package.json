@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "npm run clean && npm install && npm run docker:start && npm run db:wait && npm run db:init",
-    "docker:start": "docker compose up -d",
+    "docker:start": "docker compose up -d postgres redis localstack",
     "docker:wait": "sleep 10",
     "db:wait": "npm run docker:wait && npm run db:connection-test",
     "db:connection-test": "docker exec signature-postgres pg_isready -U root -d app",
@@ -16,11 +16,11 @@
     "db:seed": "tsx prisma/seed.ts",
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:lambda\"",
     "dev:web": "next dev",
-    "dev:lambda": "sam local start-api --host 0.0.0.0 --port 3001",
+    "dev:lambda": "sam local start-api --template lambda/template.yml --host 0.0.0.0 --port 3001",
     "build": "npm run build:web && npm run build:lambda",
     "build:web": "next build",
-    "build:lambda": "cd src/lambda && npm run build",
-    "clean": "docker compose down -v && rm -rf node_modules .next"
+    "build:lambda": "tsc --project lambda/tsconfig.json && sam build --template lambda/template.yml",
+    "clean": "docker compose down -v && rm -rf node_modules .next lambda/dist"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -29,6 +29,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.0",
     "@types/node": "^20.19.6",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",

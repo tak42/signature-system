@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Signature System Lambda Functions'
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        NODE_ENV: development
+        DATABASE_URL: postgresql://root:root@host.docker.internal:5432/app
+        AWS_ENDPOINT_URL: http://host.docker.internal:4566
+
+Resources:
+  SignatureProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handler.processSignature
+      Events:
+        ProcessApi:
+          Type: Api
+          Properties:
+            Path: /process
+            Method: post
+            
+  HealthCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handler.healthCheck
+      Events:
+        HealthApi:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+
+Outputs:
+  SignatureApi:
+    Description: "API Gateway endpoint URL for Signature functions"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
